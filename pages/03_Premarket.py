@@ -5,8 +5,18 @@ from utils.topic_data import update_topic_knowledge, get_topic_summary, is_knowl
 from utils.crypto_data import get_prediction_markets
 import pandas as pd
 
+# Check if AI service is configured
+try:
+    from utils.llm_client import client
+    ai_configured = client is not None
+except:
+    ai_configured = False
+
 st.sidebar.title("W3Intelligence")
 st.title("🔮 Prediction Markets & AI Tools")
+
+if not ai_configured:
+    st.warning("⚠️ AI service not configured. Please set `ZZZ_API_KEY` in Streamlit secrets to enable AI features.")
 
 tab1, tab2, tab3, tab4 = st.tabs(["Prediction Markets", "Topic Analyzer", "Knowledge Management", "AI Chat"])
 
@@ -51,60 +61,64 @@ with tab1:
 
 with tab2:
     st.subheader("📊 Prediction Topic Analyzer")
-    st.markdown("""
-    Input prediction materials and let the AI analyze:
-    - Sensitivity level (LOW/MEDIUM/HIGH)
-    - Market eligibility (YES/NO)
-    - Risk assessment
-    - Handling suggestions
     
-    **Note:** If you have uploaded a knowledge file, the AI will use the classification rules from the file.
-    """)
+    if not ai_configured:
+        st.info("AI service not configured. Please set `ZZZ_API_KEY` in Streamlit secrets to use this feature.")
+    else:
+        st.markdown("""
+        Input prediction materials and let the AI analyze:
+        - Sensitivity level (LOW/MEDIUM/HIGH)
+        - Market eligibility (YES/NO)
+        - Risk assessment
+        - Handling suggestions
+        
+        **Note:** If you have uploaded a knowledge file, the AI will use the classification rules from the file.
+        """)
 
-    knowledge_status = "✅" if is_knowledge_loaded() else "❌"
-    st.markdown(f"**Knowledge File Status:** {knowledge_status} {'Loaded' if is_knowledge_loaded() else 'Not loaded'}")
+        knowledge_status = "✅" if is_knowledge_loaded() else "❌"
+        st.markdown(f"**Knowledge File Status:** {knowledge_status} {'Loaded' if is_knowledge_loaded() else 'Not loaded'}")
 
-    material = st.text_area("Enter prediction material:", height=200)
+        material = st.text_area("Enter prediction material:", height=200)
 
-    if st.button("Analyze"):
-        if material:
-            with st.spinner("Analyzing..."):
-                result = analyze_prediction_topic(material)
-                try:
-                    if isinstance(result, str):
-                        result = json.loads(result)
+        if st.button("Analyze"):
+            if material:
+                with st.spinner("Analyzing..."):
+                    result = analyze_prediction_topic(material)
+                    try:
+                        if isinstance(result, str):
+                            result = json.loads(result)
+                        
+                        st.markdown("### Analysis Result")
+                        
+                        sensitivity_color = {
+                            "LOW": "green",
+                            "MEDIUM": "yellow",
+                            "HIGH": "red"
+                        }
+                        
+                        eligibility_icon = "✅" if result["market_eligibility"] == "YES" else "❌"
+                        
+                        col1, col2 = st.columns(2)
+                        
+                        with col1:
+                            st.markdown(f"**Sensitivity Level:** <span style='color:{sensitivity_color.get(result['sensitivity_level'], 'gray')}'>{result['sensitivity_level']}</span>", unsafe_allow_html=True)
+                            st.markdown(f"**Market Eligibility:** {eligibility_icon} {result['market_eligibility']}")
+                        
+                        with col2:
+                            st.markdown(f"**Sensitivity Reason:** {result['sensitivity_reason']}")
+                        
+                        st.markdown(f"**Eligibility Reason:** {result['eligibility_reason']}")
+                        st.markdown(f"**Risk Assessment:** {result['risk_assessment']}")
+                        st.markdown(f"**Suggestion:** {result['suggestion']}")
                     
-                    st.markdown("### Analysis Result")
-                    
-                    sensitivity_color = {
-                        "LOW": "green",
-                        "MEDIUM": "yellow",
-                        "HIGH": "red"
-                    }
-                    
-                    eligibility_icon = "✅" if result["market_eligibility"] == "YES" else "❌"
-                    
-                    col1, col2 = st.columns(2)
-                    
-                    with col1:
-                        st.markdown(f"**Sensitivity Level:** <span style='color:{sensitivity_color.get(result['sensitivity_level'], 'gray')}'>{result['sensitivity_level']}</span>", unsafe_allow_html=True)
-                        st.markdown(f"**Market Eligibility:** {eligibility_icon} {result['market_eligibility']}")
-                    
-                    with col2:
-                        st.markdown(f"**Sensitivity Reason:** {result['sensitivity_reason']}")
-                    
-                    st.markdown(f"**Eligibility Reason:** {result['eligibility_reason']}")
-                    st.markdown(f"**Risk Assessment:** {result['risk_assessment']}")
-                    st.markdown(f"**Suggestion:** {result['suggestion']}")
-                
-                except json.JSONDecodeError:
-                    st.error("Error parsing analysis result")
-                    st.text(result)
-                except KeyError as e:
-                    st.error(f"Missing field in result: {e}")
-                    st.text(result)
-        else:
-            st.warning("Please enter prediction material")
+                    except json.JSONDecodeError:
+                        st.error("Error parsing analysis result")
+                        st.text(result)
+                    except KeyError as e:
+                        st.error(f"Missing field in result: {e}")
+                        st.text(result)
+            else:
+                st.warning("Please enter prediction material")
 
 with tab3:
     st.subheader("📚 Knowledge Management")
@@ -209,40 +223,44 @@ with tab3:
 
 with tab4:
     st.subheader("🤖 Web3 AI Assistant")
-    st.markdown("""
-    Chat with our AI assistant about:
-    - Cryptocurrency market analysis
-    - Traditional finance insights
-    - RWA trends
-    - Prediction markets
-    - Blockchain technology
-    """)
-
-    if "chat_history" not in st.session_state:
-        st.session_state.chat_history = []
-
-    for msg in st.session_state.chat_history:
-        with st.chat_message(msg["role"]):
-            st.markdown(msg["content"])
-
-    user_input = st.chat_input("Ask about Web3...")
     
-    if user_input:
-        st.session_state.chat_history.append({"role": "user", "content": user_input})
-        
-        with st.chat_message("user"):
-            st.markdown(user_input)
-        
-        with st.chat_message("assistant"):
-            with st.spinner("Thinking..."):
-                history = [{"user": m["content"], "assistant": st.session_state.chat_history[i+1]["content"]} 
-                          for i, m in enumerate(st.session_state.chat_history) 
-                          if m["role"] == "user" and i+1 < len(st.session_state.chat_history)]
-                response = chat_with_agent(user_input, history)
-                st.markdown(response)
-        
-        st.session_state.chat_history.append({"role": "assistant", "content": response})
+    if not ai_configured:
+        st.info("AI service not configured. Please set `ZZZ_API_KEY` in Streamlit secrets to use this feature.")
+    else:
+        st.markdown("""
+        Chat with our AI assistant about:
+        - Cryptocurrency market analysis
+        - Traditional finance insights
+        - RWA trends
+        - Prediction markets
+        - Blockchain technology
+        """)
 
-    if st.button("Clear Chat"):
-        st.session_state.chat_history = []
-        st.rerun()
+        if "chat_history" not in st.session_state:
+            st.session_state.chat_history = []
+
+        for msg in st.session_state.chat_history:
+            with st.chat_message(msg["role"]):
+                st.markdown(msg["content"])
+
+        user_input = st.chat_input("Ask about Web3...")
+        
+        if user_input:
+            st.session_state.chat_history.append({"role": "user", "content": user_input})
+            
+            with st.chat_message("user"):
+                st.markdown(user_input)
+            
+            with st.chat_message("assistant"):
+                with st.spinner("Thinking..."):
+                    history = [{"user": m["content"], "assistant": st.session_state.chat_history[i+1]["content"]} 
+                              for i, m in enumerate(st.session_state.chat_history) 
+                              if m["role"] == "user" and i+1 < len(st.session_state.chat_history)]
+                    response = chat_with_agent(user_input, history)
+                    st.markdown(response)
+            
+            st.session_state.chat_history.append({"role": "assistant", "content": response})
+
+        if st.button("Clear Chat"):
+            st.session_state.chat_history = []
+            st.rerun()

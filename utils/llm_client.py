@@ -170,6 +170,9 @@ def analyze_prediction_topic(material: str) -> Dict:
 
 
 def chat_with_agent(message: str, history: Optional[list] = None) -> str:
+    if not client:
+        return "AI service not configured. Please set ZZZ_API_KEY in Streamlit secrets."
+    
     real_time_data = get_real_time_data_summary()
     
     system_prompt = f"""
