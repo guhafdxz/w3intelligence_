@@ -16,7 +16,7 @@ st.sidebar.title("W3Intelligence")
 st.title("🔮 Prediction Markets & AI Tools")
 
 if not ai_configured:
-    st.warning("⚠️ AI service not configured. Please set `ZZZ_API_KEY` in Streamlit secrets to enable AI features.")
+    st.warning("⚠️ AI service not configured. Please set `ZZZ_API_KEY` in `.env` file or Streamlit secrets to enable AI features.")
 
 tab1, tab2, tab3, tab4 = st.tabs(["Prediction Markets", "Topic Analyzer", "Knowledge Management", "AI Chat"])
 

@@ -10,10 +10,12 @@ try:
 except:
     ZZZ_API_KEY = os.getenv("ZZZ_API_KEY")
 
-client = OpenAI(
-    api_key=ZZZ_API_KEY,
-    base_url="https://api.zhizengzeng.com/v1"
-)
+client = None
+if ZZZ_API_KEY:
+    client = OpenAI(
+        api_key=ZZZ_API_KEY,
+        base_url="https://api.zhizengzeng.com/v1"
+    )
 
 
 def filter_chinese(text: str) -> str:
@@ -105,6 +107,9 @@ Top Platforms: Polymarket, Metaculus, Manifold, PredictIt
 
 
 def analyze_prediction_topic(material: str) -> Dict:
+    if not client:
+        return {"error": "AI service not configured. Please set ZZZ_API_KEY in Streamlit secrets or .env file."}
+    
     knowledge_prompt = ""
     try:
         from .topic_data import get_knowledge_prompt, is_knowledge_loaded
