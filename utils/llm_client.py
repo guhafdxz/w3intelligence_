@@ -153,7 +153,7 @@ def analyze_prediction_topic(material: str) -> Dict:
 
     try:
         response = client.chat.completions.create(
-            model="deepseek-v4-flash",
+            model="gpt-4o-mini",
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": f"Analyze the following prediction material:\n\n{material}"}
